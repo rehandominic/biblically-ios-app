@@ -21,7 +21,7 @@ struct ContentView: View {
                         .font(.custom("Georgia-Bold", size: 30))
                         .foregroundStyle(.black)
 
-                    Text("Built by Rehan Dominic.")
+                    Text("Feed your faith, daily.")
                         .font(.custom("Georgia-Italic", size: 13))
                         .foregroundStyle(Color(white: 0.55))
                 }
@@ -228,6 +228,17 @@ struct SettingsSheet: View {
                 .font(.footnote)
                 .foregroundStyle(selectedTheme.secondaryTextColor)
                 .listRowBackground(Color.clear)
+
+            VStack(spacing: 4) {
+                Text("Built by Rehan Dominic.")
+                    .font(.custom("Georgia-Italic", size: 13))
+                    .foregroundStyle(selectedTheme.secondaryTextColor)
+                Text("© 2025 Biblically. All rights reserved.")
+                    .font(.custom("Georgia-Italic", size: 13))
+                    .foregroundStyle(selectedTheme.secondaryTextColor)
+            }
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
         } header: {
             Text("About")
                 .foregroundStyle(selectedTheme.secondaryTextColor)

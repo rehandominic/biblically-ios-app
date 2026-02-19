@@ -71,6 +71,7 @@
 		306D0FC92F4690220004B3B0 /* Exceptions for "Biblically" folder in "BibllicallyWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Data/verses_kjv.json,
 				Data/verses_niv.json,
 				Models/AppTheme.swift,
 				Models/Verse.swift,
