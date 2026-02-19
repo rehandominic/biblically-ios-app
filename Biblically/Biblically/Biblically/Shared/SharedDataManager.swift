@@ -15,20 +15,25 @@ struct SharedDataManager {
         return ud
     }
 
-    // MARK: - Timeline Sequence
+    // MARK: - Full Timeline (ordered array of Verse objects)
     //
-    // The app pre-computes an ordered list of verse IDs once and saves it here.
-    // Every widget kind reads this SAME list so they always display the
-    // identical verse at any given moment.
+    // Storing complete Verse objects (not just IDs) means online verses fetched
+    // from the API and offline bundled verses are handled identically.
+    // Both widget kinds read this same array → always show the same verse.
 
-    static func saveTimelineVerseIDs(_ ids: [Int]) {
-        defaults.set(ids, forKey: Keys.timelineVerseIDs)
+    static func saveTimeline(_ verses: [Verse]) {
+        guard let data = try? JSONEncoder().encode(verses) else { return }
+        defaults.set(data, forKey: Keys.timeline)
     }
 
-    static func loadTimelineVerseIDs() -> [Int] {
-        defaults.array(forKey: Keys.timelineVerseIDs) as? [Int] ?? []
+    static func loadTimeline() -> [Verse] {
+        guard let data   = defaults.data(forKey: Keys.timeline),
+              let verses = try? JSONDecoder().decode([Verse].self, from: data)
+        else { return [] }
+        return verses
     }
 
+    /// The Date when slot 0 of the current timeline became active.
     static func saveTimelineStartDate(_ date: Date) {
         defaults.set(date.timeIntervalSince1970, forKey: Keys.timelineStartDate)
     }
@@ -38,7 +43,7 @@ struct SharedDataManager {
         return ti > 0 ? Date(timeIntervalSince1970: ti) : nil
     }
 
-    // MARK: - Current Verse
+    // MARK: - Current Verse (always equals timeline slot 0)
 
     static func saveCurrentVerse(_ verse: Verse) {
         guard let data = try? JSONEncoder().encode(verse) else { return }
@@ -76,7 +81,7 @@ struct SharedDataManager {
     // MARK: - Keys
 
     private enum Keys {
-        static let timelineVerseIDs  = "timelineVerseIDs"
+        static let timeline          = "timeline"
         static let timelineStartDate = "timelineStartDate"
         static let currentVerse      = "currentVerse"
         static let refreshInterval   = "refreshInterval"

@@ -38,50 +38,31 @@ struct WidgetTimelineProvider: TimelineProvider {
 
     // Full timeline for live widget updates
     func getTimeline(in context: Context, completion: @escaping (Timeline<VerseEntry>) -> Void) {
-        let intervalHours = SharedDataManager.loadInterval()
+        let intervalHours   = SharedDataManager.loadInterval()
         let intervalSeconds = TimeInterval(intervalHours * 3_600)
-        let theme = SharedDataManager.loadTheme()
+        let theme           = SharedDataManager.loadTheme()
 
-        // Load verses directly from the bundle (works offline)
-        let allVerses = loadBundledVerses()
+        // Read the pre-computed shared timeline — same array for every widget kind.
+        // Anchored to the same startDate so all widgets flip to the next verse in unison.
+        let savedVerses = SharedDataManager.loadTimeline()
+        let startDate   = SharedDataManager.loadTimelineStartDate() ?? Date()
 
         var entries: [VerseEntry] = []
-        var entryDate = Date()
-        var lastID = SharedDataManager.loadCurrentVerse()?.id
 
-        for i in 0..<12 {
-            let pool = allVerses.filter { $0.id != lastID }
-            guard let pick = pool.randomElement() else { break }
-
-            // First entry uses the currently stored verse if available
-            let verse: Verse
-            if i == 0, let current = SharedDataManager.loadCurrentVerse() {
-                verse = current
-            } else {
-                verse = pick
+        if savedVerses.isEmpty {
+            // Fallback: show the current verse until the app generates a proper timeline.
+            let verse = SharedDataManager.loadCurrentVerse() ?? placeholder(in: context).verse
+            entries.append(VerseEntry(date: startDate, verse: verse, theme: theme))
+        } else {
+            for (index, verse) in savedVerses.enumerated() {
+                let entryDate = startDate.addingTimeInterval(TimeInterval(index) * intervalSeconds)
+                entries.append(VerseEntry(date: entryDate, verse: verse, theme: theme))
             }
-
-            entries.append(VerseEntry(date: entryDate, verse: verse, theme: theme))
-            lastID = verse.id
-            entryDate = entryDate.addingTimeInterval(intervalSeconds)
         }
 
-        if entries.isEmpty {
-            entries.append(placeholder(in: context))
-            entryDate = Date().addingTimeInterval(intervalSeconds)
-        }
-
-        let timeline = Timeline(entries: entries, policy: .after(entryDate))
+        // Ask WidgetKit to reload once the last entry has expired.
+        let refreshDate = startDate.addingTimeInterval(TimeInterval(savedVerses.count) * intervalSeconds)
+        let timeline = Timeline(entries: entries, policy: .after(refreshDate))
         completion(timeline)
-    }
-
-    // MARK: - Private
-
-    private func loadBundledVerses() -> [Verse] {
-        guard let url = Bundle.main.url(forResource: "verses_niv", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let verses = try? JSONDecoder().decode([Verse].self, from: data)
-        else { return [] }
-        return verses
     }
 }

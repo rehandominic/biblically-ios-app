@@ -27,7 +27,7 @@ final class VerseRepository: ObservableObject {
         if let v = currentVerse { SharedDataManager.saveCurrentVerse(v) }
 
         // Generate a timeline on first launch so widgets have something to show.
-        if SharedDataManager.loadTimelineVerseIDs().isEmpty {
+        if SharedDataManager.loadTimeline().isEmpty {
             generateAndSaveTimeline()
         }
     }
@@ -144,28 +144,28 @@ final class VerseRepository: ObservableObject {
 
     // MARK: - Shared Timeline (keeps all widgets in sync)
 
-    /// Generates 12 verse references, saves their IDs/references to SharedDataManager
-    /// so every widget kind builds an identical timeline from the same data.
+    /// Generates 12 full Verse objects and saves them to SharedDataManager
+    /// so every widget kind builds an identical timeline from the same ordered array.
     @discardableResult
-    func generateAndSaveTimeline(count: Int = 12) -> [Int] {
-        var ids: [Int] = []
+    func generateAndSaveTimeline(count: Int = 12) -> [Verse] {
+        var verses: [Verse] = []
 
-        // Slot 0 = the current verse
+        // Slot 0 = the current verse (may be an online verse or bundled)
         if let current = currentVerse {
-            ids.append(current.id)
+            verses.append(current)
         }
 
         // Remaining slots = random bundled verses (always available offline)
         var lastID = currentVerse?.id
-        while ids.count < count {
+        while verses.count < count {
             let pool = allVerses.filter { $0.id != lastID }
             guard let pick = pool.randomElement() else { break }
-            ids.append(pick.id)
+            verses.append(pick)
             lastID = pick.id
         }
 
-        SharedDataManager.saveTimelineVerseIDs(ids)
+        SharedDataManager.saveTimeline(verses)
         SharedDataManager.saveTimelineStartDate(Date())
-        return ids
+        return verses
     }
 }
