@@ -8,7 +8,7 @@ struct BibleIndex {
 
     /// Returns a random reference string e.g. "Romans 8:28"
     static func randomReference() -> String {
-        let book = books.randomElement()!
+        guard let book = books.randomElement() else { return "John 3:16" }
         let chapterIndex = Int.random(in: 0..<book.chapters.count)
         let verseCount   = book.chapters[chapterIndex]
         let verseNumber  = Int.random(in: 1...verseCount)
