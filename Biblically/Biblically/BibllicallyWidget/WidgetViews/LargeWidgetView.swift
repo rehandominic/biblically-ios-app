@@ -5,53 +5,26 @@ struct LargeWidgetView: View {
     let entry: VerseEntry
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        ZStack {
             entry.theme.backgroundColor
 
-            // Watermark book name (faint large text behind the verse)
-            Text(entry.verse.book.uppercased())
-                .font(.system(size: 72, weight: .black, design: .serif))
-                .foregroundStyle(entry.theme.primaryTextColor.opacity(0.04))
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 10)
-                .offset(y: 10)
-
-            // Verse content
             VStack(alignment: .leading, spacing: 0) {
-                Spacer(minLength: 0)
-
                 Text(entry.verse.text)
-                    .font(.custom("Georgia", size: 17))
+                    .font(.custom("Georgia", size: 22))
                     .foregroundStyle(entry.theme.primaryTextColor)
                     .lineSpacing(5)
+                    .lineLimit(12)
+                    .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer(minLength: 20)
 
-                // Divider
-                Rectangle()
-                    .fill(entry.theme.accentColor.opacity(0.35))
-                    .frame(height: 0.75)
-                    .padding(.bottom, 10)
-
-                HStack {
-                    Image(systemName: "book.closed.fill")
-                        .font(.system(size: 12, weight: .light))
-                        .foregroundStyle(entry.theme.accentColor.opacity(0.7))
-
-                    Text(entry.verse.reference)
-                        .font(.custom("Georgia", size: 14))
-                        .italic()
-                        .foregroundStyle(entry.theme.secondaryTextColor)
-
-                    Spacer()
-                }
-
-                Spacer(minLength: 0)
+                Text(entry.verse.reference)
+                    .font(.custom("Georgia-Italic", size: 17))
+                    .foregroundStyle(entry.theme.secondaryTextColor)
+                    .lineLimit(1)
             }
-            .padding(20)
+            .padding(14)
         }
     }
 }

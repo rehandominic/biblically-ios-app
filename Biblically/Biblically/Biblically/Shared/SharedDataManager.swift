@@ -5,7 +5,7 @@ import Foundation
 /// always agree on which verse is active.
 struct SharedDataManager {
 
-    static let appGroupID = "group.com.rehandominic.biblically"
+    static let appGroupID = "group.com.rehandominic.Biblically"
 
     private static var defaults: UserDefaults {
         guard let ud = UserDefaults(suiteName: appGroupID) else {

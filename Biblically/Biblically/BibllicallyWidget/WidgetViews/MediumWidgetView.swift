@@ -10,35 +10,21 @@ struct MediumWidgetView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(entry.verse.text)
-                    .font(.custom("Georgia", size: 14))
+                    .font(.custom("Georgia", size: 19))
                     .foregroundStyle(entry.theme.primaryTextColor)
-                    .lineLimit(5)
-                    .minimumScaleFactor(0.8)
                     .lineSpacing(3)
+                    .lineLimit(6)
+                    .minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer(minLength: 8)
 
-                // Decorative rule
-                Rectangle()
-                    .fill(entry.theme.accentColor.opacity(0.35))
-                    .frame(height: 0.75)
-                    .padding(.bottom, 6)
-
-                HStack(alignment: .center) {
-                    Image(systemName: "book.closed.fill")
-                        .font(.system(size: 10, weight: .light))
-                        .foregroundStyle(entry.theme.accentColor.opacity(0.7))
-
-                    Text(entry.verse.reference)
-                        .font(.custom("Georgia", size: 12))
-                        .italic()
-                        .foregroundStyle(entry.theme.secondaryTextColor)
-
-                    Spacer()
-                }
+                Text(entry.verse.reference)
+                    .font(.custom("Georgia-Italic", size: 15))
+                    .foregroundStyle(entry.theme.secondaryTextColor)
+                    .lineLimit(1)
             }
-            .padding(16)
+            .padding(11)
         }
     }
 }

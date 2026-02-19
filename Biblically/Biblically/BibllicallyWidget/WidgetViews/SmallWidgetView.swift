@@ -5,36 +5,26 @@ struct SmallWidgetView: View {
     let entry: VerseEntry
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            // Background
+        ZStack {
             entry.theme.backgroundColor
 
-            // Content
-            VStack(alignment: .leading, spacing: 6) {
-                Spacer(minLength: 0)
-
+            VStack(alignment: .leading, spacing: 0) {
                 Text(entry.verse.text)
-                    .font(.custom("Georgia", size: 13))
+                    .font(.custom("Georgia", size: 18))
                     .foregroundStyle(entry.theme.primaryTextColor)
-                    .lineLimit(5)
-                    .minimumScaleFactor(0.8)
                     .lineSpacing(2)
+                    .lineLimit(6)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer(minLength: 4)
+                Spacer(minLength: 6)
 
                 Text(entry.verse.reference)
-                    .font(.custom("Georgia", size: 11))
-                    .italic()
+                    .font(.custom("Georgia-Italic", size: 13))
                     .foregroundStyle(entry.theme.secondaryTextColor)
                     .lineLimit(1)
             }
-            .padding(14)
-
-            // Corner icon
-            Image(systemName: "book.closed.fill")
-                .font(.system(size: 11, weight: .light))
-                .foregroundStyle(entry.theme.accentColor.opacity(0.6))
-                .padding(10)
+            .padding(10)
         }
     }
 }
