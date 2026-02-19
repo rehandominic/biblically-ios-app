@@ -5,7 +5,7 @@ import WidgetKit
 ///
 /// Priority order:
 ///   1. bible-api.com  — full Bible, ~31,000 verses, requires internet
-///   2. verses_niv.json — 520 bundled verses, always available offline
+///   2. verses_kjv.json — 520 bundled verses, always available offline
 ///
 /// Nothing is ever thrown to the UI. Every code path returns a verse.
 @MainActor
@@ -53,7 +53,7 @@ final class VerseRepository: ObservableObject {
     // MARK: - Bundled JSON
 
     static func loadBundledVerses() -> [Verse] {
-        guard let url   = Bundle.main.url(forResource: "verses_niv", withExtension: "json"),
+        guard let url   = Bundle.main.url(forResource: "verses_kjv", withExtension: "json"),
               let data  = try? Data(contentsOf: url),
               let list  = try? JSONDecoder().decode([Verse].self, from: data)
         else { return [] }
@@ -138,8 +138,8 @@ final class VerseRepository: ObservableObject {
     private func placeholderVerse() -> Verse {
         Verse(id: 1, book: "John", chapter: 3, verse: 16,
               reference: "John 3:16",
-              text: "For God so loved the world that he gave his one and only Son, " +
-                    "that whoever believes in him shall not perish but have eternal life.")
+              text: "For God so loved the world, that he gave his only begotten Son, " +
+                    "that whosoever believeth in him should not perish, but have everlasting life.")
     }
 
     // MARK: - Shared Timeline (keeps all widgets in sync)

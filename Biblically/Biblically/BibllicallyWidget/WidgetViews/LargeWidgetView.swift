@@ -24,7 +24,7 @@ struct LargeWidgetView: View {
                     .foregroundStyle(entry.theme.secondaryTextColor)
                     .lineLimit(1)
             }
-            .padding(14)
+            .padding(11)
         }
     }
 }

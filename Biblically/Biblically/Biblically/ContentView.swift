@@ -219,7 +219,7 @@ struct SettingsSheet: View {
             }
             .listRowBackground(Color.clear)
 
-            Text("Scripture from the NIV translation.\n© Biblica, Inc. Used by permission.")
+            Text("Scripture from the King James Version (KJV).\nPublic domain.")
                 .font(.footnote)
                 .foregroundStyle(selectedTheme.secondaryTextColor)
                 .listRowBackground(Color.clear)

@@ -24,7 +24,7 @@ struct MediumWidgetView: View {
                     .foregroundStyle(entry.theme.secondaryTextColor)
                     .lineLimit(1)
             }
-            .padding(11)
+            .padding(9)
         }
     }
 }

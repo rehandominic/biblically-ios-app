@@ -24,7 +24,7 @@ struct SmallWidgetView: View {
                     .foregroundStyle(entry.theme.secondaryTextColor)
                     .lineLimit(1)
             }
-            .padding(10)
+            .padding(8)
         }
     }
 }
