@@ -1,0 +1,16 @@
+# Xcode build output
+build/
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.xcbkptlist
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
