@@ -21,7 +21,7 @@ struct ContentView: View {
                         .font(.custom("Georgia-Bold", size: 30))
                         .foregroundStyle(.black)
 
-                    Text("Feed your faith, daily.")
+                    Text("Feed your faith, Daily.")
                         .font(.custom("Georgia-Italic", size: 13))
                         .foregroundStyle(Color(white: 0.55))
                 }
@@ -134,6 +134,7 @@ struct SettingsSheet: View {
                 }
                 .pickerStyle(.wheel)
                 .frame(height: 120)
+                .colorScheme(selectedTheme == .light || selectedTheme == .sepia ? .light : .dark)
             }
             .listRowBackground(Color.clear)
 
