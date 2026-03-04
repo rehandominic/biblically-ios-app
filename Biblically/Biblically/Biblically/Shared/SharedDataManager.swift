@@ -78,6 +78,54 @@ struct SharedDataManager {
         return theme
     }
 
+    // MARK: - Widget Mode
+
+    static func saveWidgetMode(_ mode: WidgetMode) {
+        defaults.set(mode.rawValue, forKey: Keys.widgetMode)
+    }
+
+    static func loadWidgetMode() -> WidgetMode {
+        guard let raw  = defaults.string(forKey: Keys.widgetMode),
+              let mode = WidgetMode(rawValue: raw) else { return .auto }
+        return mode
+    }
+
+    // MARK: - Pinned Verse
+
+    static func savePinnedVerse(_ verse: Verse) {
+        guard let data = try? JSONEncoder().encode(verse) else { return }
+        defaults.set(data, forKey: Keys.pinnedVerse)
+    }
+
+    static func loadPinnedVerse() -> Verse? {
+        guard let data = defaults.data(forKey: Keys.pinnedVerse) else { return nil }
+        return try? JSONDecoder().decode(Verse.self, from: data)
+    }
+
+    // MARK: - Favorites
+
+    static func saveFavorites(_ verses: [Verse]) {
+        guard let data = try? JSONEncoder().encode(verses) else { return }
+        defaults.set(data, forKey: Keys.favorites)
+    }
+
+    static func loadFavorites() -> [Verse] {
+        guard let data   = defaults.data(forKey: Keys.favorites),
+              let verses = try? JSONDecoder().decode([Verse].self, from: data)
+        else { return [] }
+        return verses
+    }
+
+    // MARK: - Use Favorites Only
+
+    static func saveUseFavoritesOnly(_ value: Bool) {
+        defaults.set(value, forKey: Keys.useFavoritesOnly)
+    }
+
+    static func loadUseFavoritesOnly() -> Bool {
+        defaults.bool(forKey: Keys.useFavoritesOnly)
+    }
+
     // MARK: - Keys
 
     private enum Keys {
@@ -86,5 +134,9 @@ struct SharedDataManager {
         static let currentVerse      = "currentVerse"
         static let refreshInterval   = "refreshInterval"
         static let selectedTheme     = "selectedTheme"
+        static let widgetMode        = "widgetMode"
+        static let pinnedVerse       = "pinnedVerse"
+        static let favorites         = "favorites"
+        static let useFavoritesOnly  = "useFavoritesOnly"
     }
 }

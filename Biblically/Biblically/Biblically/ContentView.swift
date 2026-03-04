@@ -10,7 +10,7 @@ struct ContentView: View {
     @State private var selectedTheme:   AppTheme = SharedDataManager.loadTheme()
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        ZStack(alignment: .bottom) {
             Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -50,21 +50,48 @@ struct ContentView: View {
                 Spacer()
             }
 
-            // ── Floating settings button ───────────────────────────────────
-            Button {
-                showSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 19, weight: .light))
-                    .foregroundStyle(Color(white: 0.25))
-                    .frame(width: 52, height: 52)
-                    .background(
-                        Circle()
-                            .fill(.white)
-                            .shadow(color: .black.opacity(0.14), radius: 10, x: 0, y: 3)
-                    )
+            // ── Floating buttons row ───────────────────────────────────────
+            HStack {
+                // Heart button (bottom-left)
+                if let verse = repo.currentVerse {
+                    Button {
+                        if repo.isFavorite(verse) {
+                            repo.removeFavorite(verse)
+                        } else {
+                            repo.addFavorite(verse)
+                        }
+                    } label: {
+                        Image(systemName: repo.isFavorite(verse) ? "heart.fill" : "heart")
+                            .font(.system(size: 19, weight: .light))
+                            .foregroundStyle(repo.isFavorite(verse) ? Color.red : Color(white: 0.25))
+                            .frame(width: 52, height: 52)
+                            .background(
+                                Circle()
+                                    .fill(.white)
+                                    .shadow(color: .black.opacity(0.14), radius: 10, x: 0, y: 3)
+                            )
+                    }
+                    .padding(.leading, 28)
+                }
+
+                Spacer()
+
+                // Gear button (bottom-right)
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 19, weight: .light))
+                        .foregroundStyle(Color(white: 0.25))
+                        .frame(width: 52, height: 52)
+                        .background(
+                            Circle()
+                                .fill(.white)
+                                .shadow(color: .black.opacity(0.14), radius: 10, x: 0, y: 3)
+                        )
+                }
+                .padding(.trailing, 28)
             }
-            .padding(.trailing, 28)
             .padding(.bottom, 48)
         }
         .sheet(isPresented: $showSettings) {
@@ -94,6 +121,7 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var repo = VerseRepository.shared
     @State private var showRefreshConfirmation = false
+    @State private var showVersePicker         = false
 
     private let intervalOptions = [1, 2, 4, 8, 12, 24]
 
@@ -101,6 +129,7 @@ struct SettingsSheet: View {
         NavigationStack {
             List {
                 widgetSettingsSection
+                favoritesSection
                 appearanceSection
                 aboutSection
             }
@@ -117,61 +146,176 @@ struct SettingsSheet: View {
             }
         }
         .tint(selectedTheme.accentColor)
+        .sheet(isPresented: $showVersePicker) {
+            VersePicker(repo: repo, theme: selectedTheme)
+        }
     }
 
     // MARK: - Sections
 
     private var widgetSettingsSection: some View {
         Section {
+            // ── Mode Picker ──────────────────────────────────────────────
             VStack(alignment: .leading, spacing: 8) {
-                Text("Refresh Interval")
+                Text("Widget Mode")
                     .font(.subheadline)
                     .foregroundStyle(selectedTheme.secondaryTextColor)
-                Picker("Interval", selection: $selectedInterval) {
-                    ForEach(intervalOptions, id: \.self) { hours in
-                        Text(hours == 1 ? "1h" : "\(hours)h").tag(hours)
-                    }
+
+                Picker("Widget Mode", selection: Binding(
+                    get: { repo.widgetMode },
+                    set: { repo.setWidgetMode($0) }
+                )) {
+                    Text("Auto").tag(WidgetMode.auto)
+                    Text("Pinned").tag(WidgetMode.pinned)
                 }
-                .pickerStyle(.wheel)
-                .frame(height: 120)
+                .pickerStyle(.segmented)
                 .colorScheme(selectedTheme == .light || selectedTheme == .sepia ? .light : .dark)
             }
             .listRowBackground(Color.clear)
 
-            Button {
-                repo.refreshCurrentVerse()
-                showRefreshConfirmation = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    showRefreshConfirmation = false
+            // ── Auto-mode controls ───────────────────────────────────────
+            if repo.widgetMode == .auto {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Refresh Interval")
+                        .font(.subheadline)
+                        .foregroundStyle(selectedTheme.secondaryTextColor)
+                    Picker("Interval", selection: $selectedInterval) {
+                        ForEach(intervalOptions, id: \.self) { hours in
+                            Text(hours == 1 ? "1h" : "\(hours)h").tag(hours)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(height: 120)
+                    .colorScheme(selectedTheme == .light || selectedTheme == .sepia ? .light : .dark)
                 }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: showRefreshConfirmation
-                          ? "checkmark.circle.fill"
-                          : "arrow.clockwise.circle.fill")
-                    Text(showRefreshConfirmation ? "Refreshed!" : "Refresh Widgets Now")
-                        .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .foregroundStyle(showRefreshConfirmation ? .green : .white)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(showRefreshConfirmation
-                              ? Color.green.opacity(0.15)
-                              : selectedTheme.accentColor)
-                )
-            }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowBackground(Color.clear)
 
-            if let verse = repo.currentVerse {
-                VersePreviewCard(verse: verse, theme: selectedTheme)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                // Favorites-only toggle
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle(isOn: Binding(
+                        get: { repo.useFavoritesOnly },
+                        set: { repo.setUseFavoritesOnly($0) }
+                    )) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Use Favorites Only")
+                                .foregroundStyle(selectedTheme.primaryTextColor)
+                            Text(repo.favorites.isEmpty
+                                 ? "Save verses with ♡ to enable this"
+                                 : "Rotate through your \(repo.favorites.count) saved verse\(repo.favorites.count == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundStyle(selectedTheme.secondaryTextColor)
+                        }
+                    }
+                    .tint(selectedTheme.accentColor)
+                    .disabled(repo.favorites.isEmpty)
+                }
+                .listRowBackground(Color.clear)
+
+                Button {
+                    repo.refreshCurrentVerse()
+                    showRefreshConfirmation = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        showRefreshConfirmation = false
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: showRefreshConfirmation
+                              ? "checkmark.circle.fill"
+                              : "arrow.clockwise.circle.fill")
+                        Text(showRefreshConfirmation ? "Refreshed!" : "Refresh Widgets Now")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .foregroundStyle(showRefreshConfirmation ? .green : .white)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(showRefreshConfirmation
+                                  ? Color.green.opacity(0.15)
+                                  : selectedTheme.accentColor)
+                    )
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+
+                if let verse = repo.currentVerse {
+                    VersePreviewCard(verse: verse, theme: selectedTheme)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                }
             }
+
+            // ── Pinned-mode controls ─────────────────────────────────────
+            if repo.widgetMode == .pinned {
+                Button {
+                    showVersePicker = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "pin.circle.fill")
+                        Text(repo.pinnedVerse == nil ? "Choose a Verse" : "Change Pinned Verse")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .foregroundStyle(.white)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(selectedTheme.accentColor)
+                    )
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+
+                if let pinned = repo.pinnedVerse {
+                    VersePreviewCard(verse: pinned, theme: selectedTheme)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                } else {
+                    Text("No verse pinned yet. Tap above to choose one.")
+                        .font(.subheadline)
+                        .foregroundStyle(selectedTheme.secondaryTextColor)
+                        .listRowBackground(Color.clear)
+                }
+            }
+
         } header: {
             Text("Widget Settings")
+                .foregroundStyle(selectedTheme.secondaryTextColor)
+        }
+    }
+
+    private var favoritesSection: some View {
+        Section {
+            if repo.favorites.isEmpty {
+                Text("Tap ♡ on any verse to save it here.")
+                    .font(.subheadline)
+                    .foregroundStyle(selectedTheme.secondaryTextColor)
+                    .listRowBackground(Color.clear)
+            } else {
+                ForEach(repo.favorites) { verse in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(verse.reference)
+                            .font(.custom("Georgia-Italic", size: 14))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(selectedTheme.primaryTextColor)
+                        Text(verse.text)
+                            .font(.custom("Georgia", size: 13))
+                            .foregroundStyle(selectedTheme.secondaryTextColor)
+                            .lineLimit(2)
+                    }
+                    .padding(.vertical, 4)
+                    .listRowBackground(Color.clear)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            repo.removeFavorite(verse)
+                        } label: {
+                            Label("Remove", systemImage: "heart.slash")
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Favorites\(repo.favorites.isEmpty ? "" : " (\(repo.favorites.count))")")
                 .foregroundStyle(selectedTheme.secondaryTextColor)
         }
     }

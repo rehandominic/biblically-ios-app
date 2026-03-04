@@ -15,6 +15,21 @@ struct BibleIndex {
         return "\(book.name) \(chapterIndex + 1):\(verseNumber)"
     }
 
+    // MARK: - Public accessors for VersePicker
+
+    static var allBookNames: [String] { books.map(\.name) }
+
+    static func chapterCount(for bookIndex: Int) -> Int {
+        guard bookIndex >= 0, bookIndex < books.count else { return 1 }
+        return books[bookIndex].chapters.count
+    }
+
+    static func verseCount(for bookIndex: Int, chapter: Int) -> Int {
+        guard bookIndex >= 0, bookIndex < books.count,
+              chapter > 0, chapter <= books[bookIndex].chapters.count else { return 1 }
+        return books[bookIndex].chapters[chapter - 1]
+    }
+
     // MARK: - Private
 
     private struct Book {

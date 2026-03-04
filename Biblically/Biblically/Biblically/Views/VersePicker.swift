@@ -1,0 +1,205 @@
+import SwiftUI
+
+/// Sheet that lets the user pick any verse from the full Bible (Book → Chapter → Verse).
+/// Fetches the verse from bible-api.com; falls back gracefully if offline.
+struct VersePicker: View {
+
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var repo: VerseRepository
+    let theme: AppTheme
+
+    @State private var selectedBookIndex: Int = 0
+    @State private var selectedChapter:   Int = 1
+    @State private var selectedVerse:     Int = 1
+
+    @State private var previewedVerse: Verse? = nil
+    @State private var isFetching:     Bool   = false
+    @State private var fetchError:     Bool   = false
+
+    private var bookNames: [String] { BibleIndex.allBookNames }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                pickersSection
+                if isFetching { fetchingRow }
+                if fetchError  { errorRow }
+                if let verse = previewedVerse { previewSection(verse) }
+            }
+            .scrollContentBackground(.hidden)
+            .background(theme.backgroundColor.ignoresSafeArea())
+            .navigationTitle("Choose a Verse")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(theme.accentColor)
+                }
+            }
+            .tint(theme.accentColor)
+        }
+        .onChange(of: selectedBookIndex) { _, _ in resetChapterAndVerse() }
+        .onChange(of: selectedChapter)   { _, _ in clampVerse() }
+    }
+
+    // MARK: - Sections
+
+    private var pickersSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Book")
+                    .font(.caption)
+                    .foregroundStyle(theme.secondaryTextColor)
+                Picker("Book", selection: $selectedBookIndex) {
+                    ForEach(bookNames.indices, id: \.self) { i in
+                        Text(bookNames[i]).tag(i)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 120)
+                .colorScheme(theme == .light || theme == .sepia ? .light : .dark)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Chapter")
+                    .font(.caption)
+                    .foregroundStyle(theme.secondaryTextColor)
+                Picker("Chapter", selection: $selectedChapter) {
+                    ForEach(1...BibleIndex.chapterCount(for: selectedBookIndex), id: \.self) { ch in
+                        Text("\(ch)").tag(ch)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 120)
+                .colorScheme(theme == .light || theme == .sepia ? .light : .dark)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Verse")
+                    .font(.caption)
+                    .foregroundStyle(theme.secondaryTextColor)
+                Picker("Verse", selection: $selectedVerse) {
+                    ForEach(1...BibleIndex.verseCount(for: selectedBookIndex, chapter: selectedChapter), id: \.self) { v in
+                        Text("\(v)").tag(v)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 120)
+                .colorScheme(theme == .light || theme == .sepia ? .light : .dark)
+            }
+
+            Button {
+                fetchPreview()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "eye.circle.fill")
+                    Text("Preview Verse")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .foregroundStyle(.white)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(theme.accentColor)
+                )
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+            .disabled(isFetching)
+        } header: {
+            Text("Select Reference")
+                .foregroundStyle(theme.secondaryTextColor)
+        }
+        .listRowBackground(Color.clear)
+    }
+
+    private var fetchingRow: some View {
+        HStack {
+            Spacer()
+            ProgressView()
+                .tint(theme.accentColor)
+            Text("Fetching verse…")
+                .font(.subheadline)
+                .foregroundStyle(theme.secondaryTextColor)
+            Spacer()
+        }
+        .listRowBackground(Color.clear)
+        .padding(.vertical, 8)
+    }
+
+    private var errorRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wifi.slash")
+            Text("Verse unavailable offline. Try another or check your connection.")
+                .font(.subheadline)
+        }
+        .foregroundStyle(.orange)
+        .listRowBackground(Color.clear)
+    }
+
+    private func previewSection(_ verse: Verse) -> some View {
+        Section {
+            VersePreviewCard(verse: verse, theme: theme)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+
+            Button {
+                repo.setPinnedVerse(verse)
+                dismiss()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "pin.circle.fill")
+                    Text("Pin This Verse to Widget")
+                        .fontWeight(.semibold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .foregroundStyle(.white)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(theme.accentColor)
+                )
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
+        } header: {
+            Text("Preview")
+                .foregroundStyle(theme.secondaryTextColor)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func fetchPreview() {
+        isFetching  = true
+        fetchError  = false
+        previewedVerse = nil
+
+        let bookName  = bookNames[selectedBookIndex]
+        let reference = "\(bookName) \(selectedChapter):\(selectedVerse)"
+
+        Task {
+            if let verse = await repo.fetchVerseOnlineFor(reference: reference) {
+                previewedVerse = verse
+            } else {
+                fetchError = true
+            }
+            isFetching = false
+        }
+    }
+
+    private func resetChapterAndVerse() {
+        selectedChapter = 1
+        selectedVerse   = 1
+        previewedVerse  = nil
+        fetchError      = false
+    }
+
+    private func clampVerse() {
+        let maxVerse = BibleIndex.verseCount(for: selectedBookIndex, chapter: selectedChapter)
+        if selectedVerse > maxVerse { selectedVerse = maxVerse }
+        previewedVerse = nil
+        fetchError     = false
+    }
+}

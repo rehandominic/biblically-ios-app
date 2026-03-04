@@ -19,10 +19,22 @@ final class VerseRepository: ObservableObject {
     /// Whether a network fetch is in progress (drives a subtle loading indicator if desired).
     @Published var isFetching = false
 
+    // MARK: - Favorites & Mode
+
+    @Published var favorites: [Verse] = []
+    @Published var widgetMode: WidgetMode = .auto
+    @Published var useFavoritesOnly: Bool = false
+    @Published var pinnedVerse: Verse? = nil
+
     private(set) var allVerses: [Verse] = []   // bundled fallback pool
 
     private init() {
-        allVerses = Self.loadBundledVerses()
+        allVerses    = Self.loadBundledVerses()
+        favorites    = SharedDataManager.loadFavorites()
+        widgetMode   = SharedDataManager.loadWidgetMode()
+        useFavoritesOnly = SharedDataManager.loadUseFavoritesOnly()
+        pinnedVerse  = SharedDataManager.loadPinnedVerse()
+
         currentVerse = SharedDataManager.loadCurrentVerse() ?? randomBundledVerse()
         if let v = currentVerse { SharedDataManager.saveCurrentVerse(v) }
 
@@ -50,6 +62,55 @@ final class VerseRepository: ObservableObject {
         }
     }
 
+    // MARK: - Favorites
+
+    func isFavorite(_ verse: Verse) -> Bool {
+        favorites.contains { $0.id == verse.id }
+    }
+
+    func addFavorite(_ verse: Verse) {
+        guard !isFavorite(verse) else { return }
+        favorites.append(verse)
+        SharedDataManager.saveFavorites(favorites)
+        generateAndSaveTimeline()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    func removeFavorite(_ verse: Verse) {
+        favorites.removeAll { $0.id == verse.id }
+        SharedDataManager.saveFavorites(favorites)
+        // If favorites-only mode is on and pool is now empty, disable it
+        if useFavoritesOnly && favorites.isEmpty {
+            useFavoritesOnly = false
+            SharedDataManager.saveUseFavoritesOnly(false)
+        }
+        generateAndSaveTimeline()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    // MARK: - Widget Mode
+
+    func setWidgetMode(_ mode: WidgetMode) {
+        widgetMode = mode
+        SharedDataManager.saveWidgetMode(mode)
+        generateAndSaveTimeline()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    func setUseFavoritesOnly(_ value: Bool) {
+        useFavoritesOnly = value
+        SharedDataManager.saveUseFavoritesOnly(value)
+        generateAndSaveTimeline()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    func setPinnedVerse(_ verse: Verse) {
+        pinnedVerse = verse
+        SharedDataManager.savePinnedVerse(verse)
+        generateAndSaveTimeline()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     // MARK: - Bundled JSON
 
     static func loadBundledVerses() -> [Verse] {
@@ -66,6 +127,11 @@ final class VerseRepository: ObservableObject {
     /// from bible-api.com, and returns a `Verse`. Returns `nil` on any failure.
     private func fetchVerseOnline() async -> Verse? {
         let reference = BibleIndex.randomReference()
+        return await fetchVerseOnlineFor(reference: reference)
+    }
+
+    /// Fetches a specific reference (e.g. "John 3:16") from bible-api.com.
+    func fetchVerseOnlineFor(reference: String) async -> Verse? {
         let encoded   = reference.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
                         ?? reference
         let urlString = "https://bible-api.com/\(encoded)?translation=kjv"
@@ -150,18 +216,39 @@ final class VerseRepository: ObservableObject {
     func generateAndSaveTimeline(count: Int = 12) -> [Verse] {
         var verses: [Verse] = []
 
-        // Slot 0 = the current verse (may be an online verse or bundled)
-        if let current = currentVerse {
-            verses.append(current)
-        }
+        switch widgetMode {
 
-        // Remaining slots = random bundled verses (always available offline)
-        var lastID = currentVerse?.id
-        while verses.count < count {
-            let pool = allVerses.filter { $0.id != lastID }
-            guard let pick = pool.randomElement() else { break }
-            verses.append(pick)
-            lastID = pick.id
+        case .pinned:
+            // All slots show the pinned verse so the widget never rotates.
+            let pinned = pinnedVerse ?? currentVerse ?? placeholderVerse()
+            verses = Array(repeating: pinned, count: count)
+
+        case .auto:
+            // Slot 0 = the current verse (may be an online verse or bundled)
+            if let current = currentVerse {
+                verses.append(current)
+            }
+
+            if useFavoritesOnly && !favorites.isEmpty {
+                // Rotate through the favorites pool
+                var pool = favorites.filter { $0.id != currentVerse?.id }
+                while verses.count < count {
+                    if pool.isEmpty { pool = favorites }
+                    if let pick = pool.randomElement() {
+                        pool.removeAll { $0.id == pick.id }
+                        verses.append(pick)
+                    } else { break }
+                }
+            } else {
+                // Remaining slots = random bundled verses (always available offline)
+                var lastID = currentVerse?.id
+                while verses.count < count {
+                    let pool = allVerses.filter { $0.id != lastID }
+                    guard let pick = pool.randomElement() else { break }
+                    verses.append(pick)
+                    lastID = pick.id
+                }
+            }
         }
 
         SharedDataManager.saveTimeline(verses)
