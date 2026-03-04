@@ -76,6 +76,7 @@
 				Data/verses_niv.json,
 				Models/AppTheme.swift,
 				Models/Verse.swift,
+				Models/WidgetMode.swift,
 				Shared/SharedDataManager.swift,
 			);
 			target = 306D0F9E2F468F4A0004B3B0 /* BibllicallyWidgetExtension */;
