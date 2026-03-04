@@ -46,47 +46,29 @@ struct VersePicker: View {
 
     private var pickersSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Book")
-                    .font(.caption)
-                    .foregroundStyle(theme.secondaryTextColor)
-                Picker("Book", selection: $selectedBookIndex) {
-                    ForEach(bookNames.indices, id: \.self) { i in
-                        Text(bookNames[i]).tag(i)
-                    }
+            Picker("Book", selection: $selectedBookIndex) {
+                ForEach(bookNames.indices, id: \.self) { i in
+                    Text(bookNames[i]).tag(i)
                 }
-                .pickerStyle(.wheel)
-                .frame(height: 120)
-                .colorScheme(theme == .light || theme == .sepia ? .light : .dark)
             }
+            .pickerStyle(.menu)
+            .foregroundStyle(theme.primaryTextColor)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Chapter")
-                    .font(.caption)
-                    .foregroundStyle(theme.secondaryTextColor)
-                Picker("Chapter", selection: $selectedChapter) {
-                    ForEach(1...BibleIndex.chapterCount(for: selectedBookIndex), id: \.self) { ch in
-                        Text("\(ch)").tag(ch)
-                    }
+            Picker("Chapter", selection: $selectedChapter) {
+                ForEach(1...BibleIndex.chapterCount(for: selectedBookIndex), id: \.self) { ch in
+                    Text("\(ch)").tag(ch)
                 }
-                .pickerStyle(.wheel)
-                .frame(height: 120)
-                .colorScheme(theme == .light || theme == .sepia ? .light : .dark)
             }
+            .pickerStyle(.menu)
+            .foregroundStyle(theme.primaryTextColor)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Verse")
-                    .font(.caption)
-                    .foregroundStyle(theme.secondaryTextColor)
-                Picker("Verse", selection: $selectedVerse) {
-                    ForEach(1...BibleIndex.verseCount(for: selectedBookIndex, chapter: selectedChapter), id: \.self) { v in
-                        Text("\(v)").tag(v)
-                    }
+            Picker("Verse", selection: $selectedVerse) {
+                ForEach(1...BibleIndex.verseCount(for: selectedBookIndex, chapter: selectedChapter), id: \.self) { v in
+                    Text("\(v)").tag(v)
                 }
-                .pickerStyle(.wheel)
-                .frame(height: 120)
-                .colorScheme(theme == .light || theme == .sepia ? .light : .dark)
             }
+            .pickerStyle(.menu)
+            .foregroundStyle(theme.primaryTextColor)
 
             Button {
                 fetchPreview()

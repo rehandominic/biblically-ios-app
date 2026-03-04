@@ -286,36 +286,20 @@ struct SettingsSheet: View {
 
     private var favoritesSection: some View {
         Section {
-            if repo.favorites.isEmpty {
-                Text("Tap ♡ on any verse to save it here.")
-                    .font(.subheadline)
-                    .foregroundStyle(selectedTheme.secondaryTextColor)
-                    .listRowBackground(Color.clear)
-            } else {
-                ForEach(repo.favorites) { verse in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(verse.reference)
-                            .font(.custom("Georgia-Italic", size: 14))
-                            .fontWeight(.semibold)
-                            .foregroundStyle(selectedTheme.primaryTextColor)
-                        Text(verse.text)
-                            .font(.custom("Georgia", size: 13))
-                            .foregroundStyle(selectedTheme.secondaryTextColor)
-                            .lineLimit(2)
-                    }
-                    .padding(.vertical, 4)
-                    .listRowBackground(Color.clear)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            repo.removeFavorite(verse)
-                        } label: {
-                            Label("Remove", systemImage: "heart.slash")
-                        }
-                    }
+            NavigationLink {
+                FavoritesListView(repo: repo, theme: selectedTheme)
+            } label: {
+                HStack {
+                    Text("My Favorites")
+                        .foregroundStyle(selectedTheme.primaryTextColor)
+                    Spacer()
+                    Text(repo.favorites.isEmpty ? "None" : "\(repo.favorites.count)")
+                        .foregroundStyle(selectedTheme.secondaryTextColor)
                 }
             }
+            .listRowBackground(Color.clear)
         } header: {
-            Text("Favorites\(repo.favorites.isEmpty ? "" : " (\(repo.favorites.count))")")
+            Text("Favorites")
                 .foregroundStyle(selectedTheme.secondaryTextColor)
         }
     }
@@ -411,15 +395,15 @@ struct VersePreviewCard: View {
                 .tracking(0.5)
 
             Text(verse.text)
-                .font(.custom("Georgia", size: 15))
+                .font(.custom("Georgia", size: 18))
                 .foregroundStyle(theme.primaryTextColor)
-                .lineSpacing(4)
+                .lineSpacing(5)
 
             Divider()
                 .overlay(theme.accentColor.opacity(0.3))
 
             Text(verse.reference)
-                .font(.custom("Georgia-Italic", size: 13))
+                .font(.custom("Georgia-Italic", size: 15))
                 .foregroundStyle(theme.secondaryTextColor)
         }
         .padding(16)
@@ -501,6 +485,50 @@ struct MiniMediumPreview: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 2)
+    }
+}
+
+// MARK: - Favorites List
+
+struct FavoritesListView: View {
+    @ObservedObject var repo: VerseRepository
+    let theme: AppTheme
+
+    var body: some View {
+        List {
+            if repo.favorites.isEmpty {
+                Text("Tap ♡ on any verse to save it here.")
+                    .font(.subheadline)
+                    .foregroundStyle(theme.secondaryTextColor)
+                    .listRowBackground(Color.clear)
+            } else {
+                ForEach(repo.favorites) { verse in
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(verse.reference)
+                            .font(.custom("Georgia-Italic", size: 15))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(theme.primaryTextColor)
+                        Text(verse.text)
+                            .font(.custom("Georgia", size: 14))
+                            .foregroundStyle(theme.secondaryTextColor)
+                            .lineLimit(3)
+                    }
+                    .padding(.vertical, 4)
+                    .listRowBackground(Color.clear)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            repo.removeFavorite(verse)
+                        } label: {
+                            Label("Remove", systemImage: "heart.slash")
+                        }
+                    }
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(theme.backgroundColor.ignoresSafeArea())
+        .navigationTitle("Favorites")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
