@@ -100,6 +100,11 @@ final class VerseRepository: ObservableObject {
     func setUseFavoritesOnly(_ value: Bool) {
         useFavoritesOnly = value
         SharedDataManager.saveUseFavoritesOnly(value)
+        // Jump to a random favorite immediately so the widget updates at once
+        if value, let randomFav = favorites.randomElement() {
+            currentVerse = randomFav
+            SharedDataManager.saveCurrentVerse(randomFav)
+        }
         generateAndSaveTimeline()
         WidgetCenter.shared.reloadAllTimelines()
     }

@@ -120,8 +120,10 @@ struct SettingsSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var repo = VerseRepository.shared
-    @State private var showRefreshConfirmation = false
-    @State private var showVersePicker         = false
+    @State private var showRefreshConfirmation  = false
+    @State private var showVersePicker          = false
+    @State private var showFavoritesPinPicker   = false
+    @State private var showPinnedSourceDialog   = false
 
     private let intervalOptions = [1, 2, 4, 8, 12, 24]
 
@@ -148,6 +150,18 @@ struct SettingsSheet: View {
         .tint(selectedTheme.accentColor)
         .sheet(isPresented: $showVersePicker) {
             VersePicker(repo: repo, theme: selectedTheme)
+        }
+        .sheet(isPresented: $showFavoritesPinPicker) {
+            FavoritesPinPicker(repo: repo, theme: selectedTheme)
+        }
+        .confirmationDialog(
+            "Choose a Verse to Pin",
+            isPresented: $showPinnedSourceDialog,
+            titleVisibility: .visible
+        ) {
+            Button("Browse Bible") { showVersePicker = true }
+            Button("Choose from Favorites") { showFavoritesPinPicker = true }
+            Button("Cancel", role: .cancel) { }
         }
     }
 
@@ -248,7 +262,11 @@ struct SettingsSheet: View {
             // ── Pinned-mode controls ─────────────────────────────────────
             if repo.widgetMode == .pinned {
                 Button {
-                    showVersePicker = true
+                    if repo.favorites.isEmpty {
+                        showVersePicker = true
+                    } else {
+                        showPinnedSourceDialog = true
+                    }
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "pin.circle.fill")
@@ -573,6 +591,44 @@ struct FavoritesListView: View {
         .sheet(isPresented: $showFavoriteVersePicker) {
             FavoriteVersePicker(repo: repo, theme: theme)
         }
+    }
+}
+
+// MARK: - Favorites Pin Picker
+
+/// Simple list of saved favorites; tapping a verse pins it to the widget.
+struct FavoritesPinPicker: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var repo: VerseRepository
+    let theme: AppTheme
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(repo.favorites) { verse in
+                    Button {
+                        repo.setPinnedVerse(verse)
+                        dismiss()
+                    } label: {
+                        FavoriteVerseCard(verse: verse, theme: theme)
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(theme.backgroundColor.ignoresSafeArea())
+            .navigationTitle("Pin from Favorites")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(theme.accentColor)
+                }
+            }
+        }
+        .tint(theme.accentColor)
     }
 }
 
