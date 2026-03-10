@@ -420,6 +420,39 @@ struct VersePreviewCard: View {
     }
 }
 
+// MARK: - Favorite Verse Card (box style, no label)
+
+struct FavoriteVerseCard: View {
+    let verse: Verse
+    let theme: AppTheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(verse.text)
+                .font(.custom("Georgia", size: 18))
+                .foregroundStyle(theme.primaryTextColor)
+                .lineSpacing(5)
+
+            Divider()
+                .overlay(theme.accentColor.opacity(0.3))
+
+            Text(verse.reference)
+                .font(.custom("Georgia-Italic", size: 15))
+                .foregroundStyle(theme.secondaryTextColor)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(theme.backgroundColor)
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(theme.accentColor.opacity(0.15), lineWidth: 1)
+        )
+    }
+}
+
 // MARK: - Theme Swatch
 
 struct ThemeSwatch: View {
@@ -494,34 +527,32 @@ struct FavoritesListView: View {
     @ObservedObject var repo: VerseRepository
     let theme: AppTheme
 
+    @State private var showFavoriteVersePicker = false
+
     var body: some View {
         List {
             if repo.favorites.isEmpty {
-                Text("Tap ♡ on any verse to save it here.")
+                Text("Tap ♡ on any verse to save it here, or use + to add a custom verse.")
                     .font(.subheadline)
                     .foregroundStyle(theme.secondaryTextColor)
                     .listRowBackground(Color.clear)
             } else {
-                ForEach(repo.favorites) { verse in
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(verse.reference)
-                            .font(.custom("Georgia-Italic", size: 15))
-                            .fontWeight(.semibold)
-                            .foregroundStyle(theme.primaryTextColor)
-                        Text(verse.text)
-                            .font(.custom("Georgia", size: 14))
-                            .foregroundStyle(theme.secondaryTextColor)
-                            .lineLimit(3)
-                    }
-                    .padding(.vertical, 4)
+                Text("Swipe left on a verse to remove it.")
+                    .font(.caption)
+                    .foregroundStyle(theme.secondaryTextColor)
                     .listRowBackground(Color.clear)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            repo.removeFavorite(verse)
-                        } label: {
-                            Label("Remove", systemImage: "heart.slash")
+
+                ForEach(repo.favorites) { verse in
+                    FavoriteVerseCard(verse: verse, theme: theme)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                repo.removeFavorite(verse)
+                            } label: {
+                                Label("Remove", systemImage: "heart.slash")
+                            }
                         }
-                    }
                 }
             }
         }
@@ -529,6 +560,19 @@ struct FavoritesListView: View {
         .background(theme.backgroundColor.ignoresSafeArea())
         .navigationTitle("Favorites")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showFavoriteVersePicker = true
+                } label: {
+                    Image(systemName: "plus")
+                        .foregroundStyle(theme.accentColor)
+                }
+            }
+        }
+        .sheet(isPresented: $showFavoriteVersePicker) {
+            FavoriteVersePicker(repo: repo, theme: theme)
+        }
     }
 }
 
