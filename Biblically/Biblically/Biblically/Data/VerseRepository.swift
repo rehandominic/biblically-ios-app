@@ -88,6 +88,32 @@ final class VerseRepository: ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    // MARK: - Sync App with Widget
+
+    /// Updates currentVerse to match what the widget is displaying right now.
+    /// In Pinned mode this is the pinnedVerse; in Auto mode it's the timeline
+    /// slot that corresponds to how much time has elapsed since startDate.
+    /// Call this whenever the app comes to foreground so the home screen stays
+    /// in sync with the widget without regenerating anything.
+    func syncCurrentVerseWithWidget() {
+        switch widgetMode {
+        case .pinned:
+            guard let pinned = pinnedVerse else { return }
+            currentVerse = pinned
+            SharedDataManager.saveCurrentVerse(pinned)
+        case .auto:
+            let timeline = SharedDataManager.loadTimeline()
+            guard !timeline.isEmpty else { return }
+            let startDate       = SharedDataManager.loadTimelineStartDate() ?? Date()
+            let intervalSeconds = TimeInterval(SharedDataManager.loadInterval() * 3_600)
+            let elapsed         = max(0, Date().timeIntervalSince(startDate))
+            let slot            = min(Int(elapsed / intervalSeconds), timeline.count - 1)
+            let verse           = timeline[slot]
+            currentVerse        = verse
+            SharedDataManager.saveCurrentVerse(verse)
+        }
+    }
+
     // MARK: - Widget Mode
 
     func setWidgetMode(_ mode: WidgetMode) {

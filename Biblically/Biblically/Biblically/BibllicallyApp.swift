@@ -19,6 +19,8 @@ struct BibllicallyApp: App {
                             SharedDataManager.saveCurrentVerse(verse)
                         }
                     }
+                    // Sync the home screen with whatever the widget is showing
+                    VerseRepository.shared.syncCurrentVerseWithWidget()
                     WidgetCenter.shared.reloadAllTimelines()
                 }
         }

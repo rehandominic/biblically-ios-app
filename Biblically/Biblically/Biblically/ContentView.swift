@@ -4,6 +4,7 @@ import WidgetKit
 struct ContentView: View {
 
     @StateObject private var repo = VerseRepository.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var showSettings    = false
     @State private var selectedInterval: Int    = SharedDataManager.loadInterval()
@@ -107,6 +108,13 @@ struct ContentView: View {
         .onChange(of: selectedTheme) { _, newValue in
             SharedDataManager.saveTheme(newValue)
             WidgetCenter.shared.reloadAllTimelines()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Every time the user opens the app, sync the home screen
+            // with whichever verse the widget is currently displaying.
+            if newPhase == .active {
+                repo.syncCurrentVerseWithWidget()
+            }
         }
     }
 }
