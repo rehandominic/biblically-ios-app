@@ -93,6 +93,13 @@ final class VerseRepository: ObservableObject {
     func setWidgetMode(_ mode: WidgetMode) {
         widgetMode = mode
         SharedDataManager.saveWidgetMode(mode)
+        // When releasing from Pinned → Auto, immediately swap to a fresh random verse
+        // so the widget doesn't keep showing the old pinned verse.
+        if mode == .auto {
+            let fresh = randomBundledVerse(excluding: pinnedVerse?.id)
+            currentVerse = fresh
+            SharedDataManager.saveCurrentVerse(fresh)
+        }
         generateAndSaveTimeline()
         WidgetCenter.shared.reloadAllTimelines()
     }

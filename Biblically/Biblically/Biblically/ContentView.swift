@@ -121,6 +121,7 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var repo = VerseRepository.shared
     @State private var showRefreshConfirmation  = false
+    @State private var showApplyConfirmation    = false
     @State private var showVersePicker          = false
     @State private var showFavoritesPinPicker   = false
     @State private var showPinnedSourceDialog   = false
@@ -261,6 +262,7 @@ struct SettingsSheet: View {
 
             // ── Pinned-mode controls ─────────────────────────────────────
             if repo.widgetMode == .pinned {
+                // Change / Choose button
                 Button {
                     if repo.favorites.isEmpty {
                         showVersePicker = true
@@ -285,12 +287,64 @@ struct SettingsSheet: View {
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
 
                 if let pinned = repo.pinnedVerse {
-                    VersePreviewCard(verse: pinned, theme: selectedTheme)
+                    // Preview card with correct label
+                    VersePreviewCard(verse: pinned, theme: selectedTheme, label: "Pinned Verse")
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+
+                    // Apply to widget immediately
+                    Button {
+                        repo.setPinnedVerse(pinned)
+                        showApplyConfirmation = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            showApplyConfirmation = false
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: showApplyConfirmation
+                                  ? "checkmark.circle.fill"
+                                  : "arrow.clockwise.circle.fill")
+                            Text(showApplyConfirmation ? "Applied!" : "Apply to Widget Now")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .foregroundStyle(showApplyConfirmation ? .green : .white)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(showApplyConfirmation
+                                      ? Color.green.opacity(0.15)
+                                      : selectedTheme.accentColor)
+                        )
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+
                 } else {
-                    Text("No verse pinned yet. Tap above to choose one.")
-                        .font(.subheadline)
+                    // No verse pinned yet — quick-pin the currently showing verse
+                    if let current = repo.currentVerse {
+                        Button {
+                            repo.setPinnedVerse(current)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "pin.fill")
+                                Text("Pin Currently Showing Verse")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .foregroundStyle(.white)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(selectedTheme.accentColor.opacity(0.75))
+                            )
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    }
+
+                    Text("No verse pinned yet. Choose one above or pin the current verse.")
+                        .font(.caption)
                         .foregroundStyle(selectedTheme.secondaryTextColor)
                         .listRowBackground(Color.clear)
                 }
@@ -402,10 +456,11 @@ struct SettingsSheet: View {
 struct VersePreviewCard: View {
     let verse: Verse
     let theme: AppTheme
+    var label: String = "Currently Showing"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Currently Showing")
+            Text(label)
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(theme.secondaryTextColor)
